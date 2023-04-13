@@ -1,0 +1,250 @@
+Task 3
+==========
+
+On the created kubernetes cluster, create 2 namespace with the name 'Dev' and 'Staging'. On both namespace, deploy a sample kubernetes application and expose the application with Node-Port.(One with nginx and other with apache image)
+Make sure the application can be accessed from outside
+--
+
+
+
+ubuntu@ip-172-31-10-92:~$ kubectl create namespace dev
+namespace/dev created
+ubuntu@ip-172-31-10-92:~$ vi nginx-deployment.yaml
+ubuntu@ip-172-31-10-92:~$ kubectl apply -f nginx-deployment.yaml
+deployment.apps/nginx-deployment created
+service/nginx-service created
+ubuntu@ip-172-31-10-92:~$ kubectl get pods -n dev
+NAME                                READY   STATUS    RESTARTS   AGE
+nginx-deployment-6c8b449b8f-nf4qn   1/1     Running   0          17s
+ubuntu@ip-172-31-10-92:~$ kubectl get pods -n dev -o wide
+NAME                                READY   STATUS    RESTARTS   AGE   IP          NODE              NOMINATED NODE   READINESS GATES
+nginx-deployment-6c8b449b8f-nf4qn   1/1     Running   0          56s   10.44.0.1   ip-172-31-15-69   <none>           <none>
+ubuntu@ip-172-31-10-92:~$ kubectl exec nginx-deployment-6c8b449b8f-nf4qn -n dev  -- curl http://localhost
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   615  100   615    0     0  68333      0 --:--:-- --:--:-- --:--:-- 68333
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+html { color-scheme: light dark; }
+body { width: 35em; margin: 0 auto;
+font-family: Tahoma, Verdana, Arial, sans-serif; }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+
+
+nginx-deployment.yaml.  file code as below.  
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  namespace: dev
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+  namespace: dev
+spec:
+  selector:
+    app: nginx
+  type: NodePort
+  ports:
+  - port: 80
+    targetPort: 80
+
+
+ubuntu@ip-172-31-10-92:~$ kubectl get pods -n dev
+NAME                                READY   STATUS    RESTARTS   AGE
+nginx-deployment-6c8b449b8f-nf4qn   1/1     Running   0          5m30s
+
+
+ubuntu@ip-172-31-10-92:~$ kubectl describe pod  nginx-deployment-6c8b449b8f-nf4qn -n dev
+Name:         nginx-deployment-6c8b449b8f-nf4qn
+Namespace:    dev
+Priority:     0
+Node:         ip-172-31-15-69/172.31.15.69
+Start Time:   Thu, 13 Apr 2023 15:02:29 +0000
+Labels:       app=nginx
+              pod-template-hash=6c8b449b8f
+Annotations:  <none>
+Status:       Running
+IP:           10.44.0.1
+IPs:
+  IP:           10.44.0.1
+Controlled By:  ReplicaSet/nginx-deployment-6c8b449b8f
+Containers:
+  nginx:
+    Container ID:   containerd://4b435dd7f15e00ed5e114c9205f81621748ff175efadba63d402ba825c6a7b42
+    Image:          nginx
+    Image ID:       docker.io/library/nginx@sha256:63b44e8ddb83d5dd8020327c1f40436e37a6fffd3ef2498a6204df23be6e7e94
+    Port:           80/TCP
+    Host Port:      0/TCP
+    State:          Running
+      Started:      Thu, 13 Apr 2023 15:02:31 +0000
+    Ready:          True
+    Restart Count:  0
+    Environment:    <none>
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-hjj48 (ro)
+Conditions:
+  Type              Status
+  Initialized       True 
+  Ready             True 
+  ContainersReady   True 
+  PodScheduled      True 
+Volumes:
+  kube-api-access-hjj48:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    ConfigMapOptional:       <nil>
+    DownwardAPI:             true
+QoS Class:                   BestEffort
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type    Reason     Age    From               Message
+  ----    ------     ----   ----               -------
+  Normal  Scheduled  6m50s  default-scheduler  Successfully assigned dev/nginx-deployment-6c8b449b8f-nf4qn to ip-172-31-15-69
+  Normal  Pulling    6m49s  kubelet            Pulling image "nginx"
+  Normal  Pulled     6m48s  kubelet            Successfully pulled image "nginx" in 543.687189ms
+  Normal  Created    6m48s  kubelet            Created container nginx
+  Normal  Started    6m48s  kubelet            Started container nginx
+ubuntu@ip-172-31-10-92:~$ kubectl get pods -n dev
+NAME                                READY   STATUS    RESTARTS   AGE
+nginx-deployment-6c8b449b8f-nf4qn   1/1     Running   0          7m45s
+ubuntu@ip-172-31-10-92:~$ kubectl get pods -n dev
+NAME                                READY   STATUS    RESTARTS   AGE
+nginx-deployment-6c8b449b8f-nf4qn   1/1     Running   0          7m58s
+ubuntu@ip-172-31-10-92:~$ kubectl get services  -n dev
+NAME            TYPE       CLUSTER-IP    EXTERNAL-IP   PORT(S)        AGE
+nginx-service   NodePort   10.96.30.13   <none>        80:32548/TCP   8m15s
+ubuntu@ip-172-31-10-92:~$ 
+
+
+
+https://prnt.sc/m_tfaYSV-Eu6
+
+
+
+
+
+
+
+
+
+
+
+
+ubuntu@ip-172-31-10-92:~$ kubectl create namespace staging
+namespace/staging created
+ubuntu@ip-172-31-10-92:~$ kubectl apply -f apache-deployment.yaml
+deployment.apps/apache-deployment created
+service/apache-service created
+ubuntu@ip-172-31-10-92:~$ kubectl get pods -n staging
+NAME                                 READY   STATUS    RESTARTS   AGE
+apache-deployment-844679c45c-n54hs   1/1     Running   0          26s
+
+
+
+apache-deployment.yaml code 
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apache-deployment
+  namespace: staging
+spec:
+  selector:
+    matchLabels:
+      app: apache
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: apache
+    spec:
+      containers:
+      - name: apache
+        image: httpd
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: apache-service
+  namespace: staging
+spec:
+  selector:
+    app: apache
+  type: NodePort
+  ports:
+  - port: 80
+    targetPort: 80
+
+
+
+
+
+
+
+
+ubuntu@ip-172-31-10-92:~$ curl http://10.102.67.97 
+<html><body><h1>It works!</h1></body></html>
+ubuntu@ip-172-31-10-92:~$ 
+
+
+
+
+
+
+
+
+
+https://prnt.sc/d5VCpvbgnPKB
+
+
+
+
+
+
+
+
+
+
+
